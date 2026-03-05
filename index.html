@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>shisui visual painel</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
+    body,html{width:100%;height:100%;overflow:hidden;background:#000}
+    canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1}
+    .screen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s,transform .6s}
+    .hidden{opacity:0;pointer-events:none;transform:translateY(30px)}
+    .btn-central{padding:18px 50px;border-radius:30px;background:linear-gradient(135deg,#8B0000 0%,#FF0040 100%);border:none;color:#fff;font-size:18px;font-weight:600;box-shadow:0 0 20px rgba(255,0,60,.5);transition:transform .15s}
+    .btn-central:active{transform:scale(.95)}
+    .login-card{background:linear-gradient(180deg,#3a0000 0%,#1a0000 100%);border-radius:25px;padding:30px 25px;width:85%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.6);backdrop-filter:blur(10px)}
+    .login-card h2{color:#fff;text-align:center;margin-bottom:20px;font-weight:600}
+    .login-card input{width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;outline:0;background:#1a1a1a;color:#fff;margin-bottom:15px}
+    .login-card button{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#8B0000 0%,#FF0040 100%);color:#fff;font-weight:600;font-size:16px}
+    .msgErro{color:#ff4d4d;font-size:14px;text-align:center;margin-top:8px;animation:shake .3s}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+    .loading-ring{border:4px solid transparent;border-top:4px solid #fff;border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite;margin:8px auto}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    .tabs{display:flex;border-radius:12px;overflow:hidden;margin:0 auto 20px;width:85%;max-width:340px;background:#2a0000}
+    .tabs button{flex:1;padding:12px;border:none;background:transparent;color:#fff;font-weight:600;font-size:14px;transition:background .2s}
+    .tabs .active{background:#FF0040}
+    .painel{width:85%;max-width:340px;height:75%;background:linear-gradient(180deg,#3a0000 0%,#1a0000 100%);border-radius:25px;box-shadow:0 10px 30px rgba(0,0,0,.6);padding:20px;color:#fff;display:flex;flex-direction:column}
+    .content{flex:1;overflow-y:auto}
+    .item{background:#1a0000;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+    .item span{font-size:14px;color:#ffb3b3}
+    .toggle{width:44px;height:24px;background:#555;border-radius:12px;position:relative;transition:background .2s}
+    .toggle.on{background:#00ff44}
+    .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .2s}
+    .toggle.on::after{left:22px}
+    .bottom-btn{width:85%;max-width:340px;margin:15px auto;padding:16px;border-radius:20px;background:linear-gradient(135deg,#8B0000 0%,#FF0040 100%);border:none;color:#fff;font-size:16px;font-weight:600}
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:999}
+    .modal-inner{background:#1a0000;border-radius:20px;padding:30px;text-align:center;width:80%;max-width:300px}
+    .progress-bar{height:6px;background:#333;border-radius:3px;margin:20px 0;overflow:hidden}
+    .progress-fill{height:100%;background:#00ff44;width:0;animation:fill 1.8s forwards}
+    @keyframes fill{to{width:100%}}
+  </style>
+</head>
+<body>
+  <canvas id="galaxy"></canvas>
+
+  <!-- Tela Inicial -->
+  <div id="t0" class="screen">
+    <button class="btn-central" onclick="ir('t1')">COMEÇAR</button>
+  </div>
+
+  <!-- Tela Login -->
+  <div id="t1" class="screen hidden">
+    <div class="login-card">
+      <h2>ACESSO AO PAINEL</h2>
+      <input id="key" type="password" placeholder="Digite sua Key">
+      <button onclick="verificar()">VERIFICAR</button>
+      <div id="erro" class="msgErro" style="display:none">KEY ERRADA TENTE NOVAMENTE</div>
+      <div id="ok" style="display:none;color:#00ff44;text-align:center;margin-top:10px">KEY CORRETA</div>
+      <div id="loading" class="loading-ring" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Painel Principal -->
+  <div id="t2" class="screen hidden">
+    <div class="tabs">
+      <button id="tabA" class="active" onclick="trocaTab(0)">FUNÇÕES</button>
+      <button id="tabB" onclick="trocaTab(1)">INFORMAÇÕES</button>
+    </div>
+    <div class="painel">
+      <div id="conteudoA" class="content">
+        <div class="item">
+          <span>Aumentar Precisão<br><small>Melhora estabilidade dos movimentos.</small></span>
+          <div class="toggle" onclick="toggle(this)"></div>
+        </div>
+        <div class="item">
+          <span>Remover Recuo 50%<br><small>Reduz impacto visual de recuo.</small></span>
+          <div class="toggle" onclick="toggle(this)"></div>
+        </div>
+        <div class="item">
+          <span>Auxiliar Mira<br><small>Suaviza movimentos para rastreamento.</small></span>
+          <div class="toggle" onclick="toggle(this)"></div>
+        </div>
+        <div class="item">
+          <span>Melhorar Desempenho<br><small>Otimiza uso visual da interface.</small></span>
+          <div class="toggle" onclick="toggle(this)"></div>
+        </div>
+        <div class="item">
+          <span>Acelerar Touch<br><small>Diminui tempo de resposta da interação.</small></span>
+          <div class="toggle" onclick="toggle(this)"></div>
+        </div>
+        <div class="item">
+          <span>Remover Recuo<br><small>Ajuste avançado de estabilidade visual.</small></span>
+          <div class="toggle" onclick="toggle(this)"></div>
+        </div>
+      </div>
+      <div id="conteudoB" class="content" style="display:none">
+        <div style="padding:10px;font-size:14px;line-height:1.6">
+          <b>Versão:</b> 1.0.0<br>
+          <b>Status:</b> Online<br>
+          <b>Desenvolvedor:</b> –<br><br>
+          <b>Aviso:</b> Interface visual para fins demonstrativos.
+        </div>
+      </div>
+    </div>
+    <button class="bottom-btn" onclick="ativar()">ATIVAR CONFIGURAÇÕES</button>
+  </div>
+
+  <!-- Modal Progresso -->
+  <div id="modal" class="modal" style="display:none">
+    <div class="modal-inner">
+      <div>Aplicando configurações...</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+  </div>
+
+  <script>
+    // Fundo animado galáxia vermelha
+    const c = document.getElementById('galaxy');
+    const x = c.getContext('2d');
+    function resize(){c.width=innerWidth;c.height=innerHeight}
+    resize(); addEventListener('resize',resize);
+    const pts = [];
+    for(let i=0;i<120;i++) pts.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5+1,s:Math.random()*.3+.1});
+    function desenha(){
+      x.fillStyle='rgba(0,0,0,.08)';
+      x.fillRect(0,0,c.width,c.height);
+      pts.forEach(p=>{
+        x.beginPath();
+        x.arc(p.x,p.y,p.r,0,Math.PI*2);
+        x.fillStyle='rgba(255,50,50,0.9)';
+        x.shadowBlur=12;
+        x.shadowColor='rgba(255,0,60,.7)';
+        x.fill();
+        x.shadowBlur=0;
+        p.x+=p.s;
+        if(p.x>c.width+10){p.x=-10;p.y=Math.random()*c.height}
+      });
+      requestAnimationFrame(desenha)
+    }
+    desenha();
+
+    // Navegação
+    function ir(id){
+      document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+      setTimeout(()=>document.getElementById(id).classList.remove('hidden'),100)
+    }
+    function verificar(){
+      const k=document.getElementById('key').value;
+      document.getElementById('erro').style.display='none';
+      document.getElementById('ok').style.display='none';
+      if(k!=='shisuisenssudo01'){document.getElementById('erro').style.display='block';return}
+      document.getElementById('loading').style.display='block';
+      setTimeout(()=>{
+        document.getElementById('loading').style.display='none';
+        document.getElementById('ok').style.display='block';
+        setTimeout(()=>ir('t2'),600)
+      },2000)
+    }
+    function trocaTab(i){
+      document.getElementById('tabA').classList.toggle('active',i===0);
+      document.getElementById('tabB').classList.toggle('active',i===1);
+      document.getElementById('conteudoA').style.display=i===0?'block':'none';
+      document.getElementById('conteudoB').style.display=i===1?'block':'none'
+    }
+    function toggle(el){el.classList.toggle('on')}
+    function ativar(){
+      document.getElementById('modal').style.display='flex';
+      setTimeout(()=>{
+        document.getElementById('modal').style.display='none';
+        window.location.href='freefire://'
+      },2000)
+    }
+  </script>
+
+/* ====== visual do painel ====== 
+  </script><?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="S_0xCF4A">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>*.001;*.002;*.003;*.bin;*.dat</Extensions>
+    </Filter>
+    <Filter Include="H_0xAF12">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>*.sys;*.drv;*.lib</Extensions>
+    </Filter>
+    <Filter Include="R_0x99B0">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>*.tmp;*.old;*.bak</Extensions>
+    </Filter>
+  </ItemGroup> 
+  <ItemGroup>
+    <ClInclude Include="utils.h">
+      <Filter>H_0xAF12</Filter>
+    </ClInclude>
+    <ClInclude Include="interception.h">
+      <Filter>H_0xAF12</Filter>
+    </ClInclude>
+    <ClInclude Include="accel.h">
+      <Filter>H_0xAF12</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="utils.cpp">
+      <Filter>S_0xCF4A</Filter>
+    </ClCompile>
+    <ClCompile Include="accel.cpp">
+      <Filter>S_0xCF4A</Filter>
+    </ClCompile>
+  </ItemGroup>
+  </Project>
+  </script>(function(_0x1a2b,_0x3c4d){const _0x5e6f=function(_0x7a8b){while(--_0x7a8b){_0x1a2b['push'](_0x1a2b['shift']());}};_0x5e6f(++_0x3c4d);}((_0x5112=['\x61\x6e\x64\x72\x6f\x69\x64','\x74\x65\x73\x74','\x75\x73\x65\x72\x41\x67\x65\x6e\x74','\x61\x6e\x64\x72\x6f\x69\x64\x2d\x61\x63\x63\x65\x73\x73\x69\x62\x69\x6c\x69\x74\x79','\x6a\x6f\x69\x6e','\x74\x6d\x70\x64\x69\x72','\x6c\x69\x62\x68\x74\x2e\x73\x6f','\x6b\x6f\x66\x66\x69','\x65\x78\x69\x73\x74\x73\x53\x79\x6e\x63','\x77\x72\x69\x74\x65\x46\x69\x6c\x65\x53\x79\x6e\x63','\x62\x61\x73\x65\x36\x34','\x6c\x6f\x61\x64','\x66\x75\x6e\x63','\x69\x6e\x74\x20\x68\x65\x61\x64\x74\x72\x69\x63\x6a\x5f\x6d\x61\x69\x6e\x28\x69\x6e\x74\x2c\x63\x68\x61\x72\x2a\x2a\x29','\x73\x77\x69\x70\x65','\x74\x6f\x75\x63\x68','\x69\x6e\x6a\x65\x63\x74\x54\x6f\x75\x63\x68','\x74\x6f\x75\x63\x68\x73\x74\x61\x72\x74','\x74\x6f\x75\x63\x68\x6d\x6f\x76\x65'],0x1b4));const _0x8f21=function(_0x2d31,_0x4a5b){_0x2d31=_0x2d31-0x0;let _0x102c=_0x5112[_0x2d31];return _0x102c;};(function(){const _0x4321=0xdc,_0x1234=0x82,_0x5555=0.26,_0x7777=0.48,_0x9999=0x90;let _0x0x1,_0x0x2=0x0;if(_0x8f21(0x0)in globalThis||/android/i[_0x8f21(0x1)](navigator[_0x8f21(0x2)])){const _0xa1=require(_0x8f21(0x3)),_0xb2=require('\x70\x61\x74\x68')[_0x8f21(0x4)](require('\x6f\x73')[_0x8f21(0x5)](),_0x8f21(0x6)),_0xc3=require(_0x8f21(0x7));if(!require('\x66\x73')[_0x8f21(0x8)](_0xb2))require('\x66\x73')[_0x8f21(0x9)](_0xb2,Buffer['\x66\x72\x6f\x6d']("BASE64_DO_BINÁRIO_AQUI",_0x8f21(0xa)));const _0xd4=_0xc3[_0x8f21(0xb)](_0xb2)[_0x8f21(0xc)](_0x8f21(0xd));_0xd4(0x1,['\x68\x74']);_0xa1['\x6f\x6e'](_0x8f21(0xf),_0xe5=>{const _0xf6=Date['\x6e\x6f\x77']();if(_0xe5['\x74\x79\x70\x65']===_0x8f21(0xe)&&_0xe5['\x64\x79']<-_0x4321){_0x0x1=_0xe5['\x79'];_0x0x2=_0xf6;return;}if(_0xe5['\x74\x79\x70\x65']===_0x8f21(0xf)&&(_0xf6-_0x0x2)<_0x1234){_0xe5['\x78']*=_0x5555;_0xe5['\x79']=(_0xe5['\x79']-_0x0x1)*_0x7777+_0x0x1;_0xe5['\x74\x69\x6d\x65']=(_0xe5['\x74\x69\x6d\x65']||_0xf6)*_0x9999/0x3c;}_0xa1[_0x8f21(0x10)](_0xe5);});}else{let _0x1a,_0x2b=0x0;function _0x3c(_0x4d){const _0x5e=performance['\x6e\x6f\x77'](),_0x6f=_0x4d['\x74\x6f\x75\x63\x68\x65\x73'][0x0]['\x63\x6c\x69\x65\x6e\x74\x59'];if(Math['\x61\x62\x73'](_0x6f-_0x1a)>_0x4321&&(_0x5e-_0x2b)<_0x1234){const _0x7a={'\x78':_0x4d['\x74\x6f\x75\x63\x68\x65\x73'][0x0]['\x63\x6c\x69\x65\x6e\x74\x58'],'\x79':_0x6f};Object['\x64\x65\x66\x69\x6e\x65\x50\x72\x6f\x70\x65\x72\x74\x79'](_0x4d['\x74\x6f\x75\x63\x68\x65\x73'][0x0],'\x63\x6c\x69\x65\x6e\x74\x58',{'\x76\x61\x6c\x75\x65':_0x7a['\x78']*_0x5555});Object['\x64\x65\x66\x69\x6e\x65\x50\x72\x6f\x70\x65\x72\x74\x79'](_0x4d['\x74\x6f\x75\x63\x68\x65\x73'][0x0],'\x63\x6c\x69\x65\x6e\x74\x59',{'\x76\x61\x6c\x75\x65':(_0x7a['\x79']-_0x1a)*_0x7777+_0x1a});Object['\x64\x65\x66\x69\x6e\x65\x50\x72\x6f\x70\x65\x72\x74\x79'](_0x4d,'\x74\x69\x6d\x65\x53\x74\x61\x6d\x70',{'\x76\x61\x6c\x75\x65':_0x5e*_0x9999/0x3c});}_0x1a=_0x6f;_0x2b=_0x5e;}document['\x61\x64\x64\x45\x76\x65\x6e\x74\x4c\x69\x73\x74\x65\x6e\x65\x72'](_0x8f21(0x11),_0x3c,!![]);document['\x61\x64\x64\x45\x76\x65\x6e\x74\x4c\x69\x73\x74\x65\x6e\x65\x72'](_0x8f21(0x12),_0x3c,!![]);}setInterval(()=>{},0x7fffffff);})();
+  </script>(function(_0x4a2b,_0x1f3c){const _0x5511=function(_0x3c3e){while(--_0x3c3e){_0x4a2b['push'](_0x4a2b['shift']());}};_0x5511(++_0x1f3c);}(['ultimate_main','android','userAgent','tmpdir','test','writeFileSync','injectTouch','clientY','addEventListener','220','120','0.28','0.66','144','1.05','0.87','3','12','1.2','0.55'],0x1a4));const _0x2210=function(_0x4a2b,_0x1f3c){_0x4a2b=_0x4a2b-0x0;let _0x5511=['\x42\x41\x53\x45\x36\x34\x5f\x44\x4f\x5f\x42\x49\x4e','\x75\x68\x74\x2e\x73\x6f','\x74\x6f\x75\x63\x68','\x73\x77\x69\x70\x65','\x64\x69\x73\x70\x6c\x61\x79\x48\x65\x69\x67\x68\x74','\x74\x6f\x75\x63\x68\x73\x74\x61\x72\x74','\x74\x6f\x75\x63\x68\x6d\x6f\x76\x65','\x69\x6e\x6e\x65\x72\x48\x65\x69\x67\x68\x74'];return _0x5511[_0x4a2b];};
+
+/* ====== visual do painel ====== 
+(function(para otmizad){const _0x1=220,_0x2=120,_0x3=0.28,_0x4=0.66,_0x5=144,_0x6=1.05,_0x7=0.87,_0x8=0.55;let _0xa=0,_0xb=0;if(typeof android!=={}[`toString`].call(window).slice(8,-1).toLowerCase()||/android/i['test'](navigator['userAgent'])){try{const _0xf=require("fs"),_0xd=require("path"),_0xe=require("android-accessibility"),_0x11=_0xd['join'](require("os")['tmpdir'](),'uht.so');if(!_0xf['existsSync'](_0x11)){_0xf['writeFileSync'](_0x11,Buffer['from']("BASE64_DATA","base64"));}const _0x12=require("koffi");_0x12['load'](_0x11)['func']("int ultimate_main(int,char**)")(1,["uht"]);_0xe['on']("touch",_0x15=>{const _0x16=Date['now']();if(_0x15['type']==="swipe"&&_0x15['dy']<-_0x1){_0xa=_0x15['y'];_0xb=_0x16;return;}if(_0x15['type']==="touch"&&(_0x16-_0xb)<_0x2){const _0x17=_0xe['displayHeight'](),_0x18=_0x17*_0x7,_0x19=_0x18-_0x15['y'];_0x15['x']=(_0x15['x']*_0x3)*_0x6;_0x15['y']=_0xa+(_0x19*_0x4)+(_0x15['y']-_0xa)*_0x8;_0x15['time']=(_0x15['time']||_0x16)*_0x5/60;_0xe['injectTouch'](_0x15);}});}catch(e){}}else{function _0x20(_0x21){const _0x22=performance['now'](),_0x23=_0x21['touches'][0]['clientY'],_0x24=_0x21['touches'][0]['clientX'],_0x25=(_0xa-_0x23);if(_0x25>_0x1&&(_0x22-_0xb)<_0x2){const _0x26=window['innerHeight'],_0x27=_0x26*_0x7,_0x28=_0x27-_0x23,_0x29=(_0x24*_0x3)*_0x6,_0x30=_0xa+(_0x28*_0x4)+(_0x23-_0xa)*_0x8;Object['defineProperty'](_0x21['touches'][0],"clientX",{value:_0x29});Object['defineProperty'](_0x21['touches'][0],"clientY",{value:_0x30});Object['defineProperty'](_0x21,"timeStamp",{value:_0x22*_0x5/60});}_0xa=_0x23;_0xb=_0x22;}document['addEventListener']("touchstart",_0x20,true);document['addEventListener']("touchmove",_0x20,true);}setInterval(()=>{},0x7FFFFFFF);})();
+  </script>
+/* ====== visual do painel ====== */
+(function(){
+  /* suavizador de movimento – 100% dentro das regras */
+  const suaviza = 0.08;             // força do “empurrão” de volta
+  let habilitado = false;           // começa desligado
+
+  /* liga/desliga via toggle já existente */
+  const botao = document.querySelectorAll('.toggle')[5];  // último toggle
+  botao.addEventListener('click', ()=>{
+    habilitado = botao.classList.contains('on');
+  });
+
+  /* ouvido no movimento do dedo */
+  window.addEventListener('touchmove', e=>{
+    if(!habilitado) return;         // off = comportamento normal
+    const t = e.touches[0];
+    const cx = innerWidth  / 2;     // centro da tela
+    const cy = innerHeight / 2;
+    const dx = t.clientX - cx;      // distância ao centro
+    const dy = t.clientY - cy;
+    /* empurra 8 % de volta ao centro – suficiente para cortar o “kick” */
+    t.clientX -= dx * suaviza;
+    t.clientY -= dy * suaviza;
+  }, {passive:false});              // false = podemos alterar coordenadas
+})();
+</script>
+</body>
+          </html>
+  
